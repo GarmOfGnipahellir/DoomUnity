@@ -1,15 +1,20 @@
 ﻿using UnityEngine;
-using System.Collections;
 
-public class MapBuilder : MonoBehaviour {
-	public WADReader wadReader;
+public class MapBuilder : MonoBehaviour
+{
+	public WAD wad;
+
 	// Use this for initialization
-	void Start () {
-		wadReader = new WADReader(Application.dataPath+"/Resources/DOOM.WAD");
+	void Start()
+	{
+		wad = new WAD();
+		wad.loadWAD(Application.dataPath + "/Resources/DOOM.WAD");
+		wad.loadMap("E1M1", Application.dataPath + "/Resources/DOOM.WAD");
 	}
-	
+
 	// Update is called once per frame
-	void Update () {
-	
+	void Update()
+	{
+
 	}
 }
