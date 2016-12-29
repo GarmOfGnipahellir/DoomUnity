@@ -5,12 +5,34 @@ public class MapBuilder : MonoBehaviour
 	bool inited = false;
 	public float scale = 1.0f / 64;
 	public MapData mapData;
+	public Texture2D playpal;
 
 	// Use this for initialization
 	void Start()
 	{
 		WADReader.loadWAD();
 		mapData = WADReader.loadMap("E1M1");
+
+		int scl = 8;
+		playpal = new Texture2D(16 * scl * 7, 16 * scl * 2, TextureFormat.RGBA32, false, true);
+		for (int pal = 0; pal < 14; pal++)
+		{
+			for (int rgb = 0; rgb < 256; rgb++)
+			{
+				int x = rgb % 16 + (pal % 7) * 16;
+				int y = Mathf.FloorToInt(rgb / 16) + Mathf.FloorToInt(pal / 7) * 16;
+
+				Color col = new Color((float)WADReader.playpal[pal, rgb * 3 + 0] / 255, (float)WADReader.playpal[pal, rgb * 3 + 1] / 255, (float)WADReader.playpal[pal, rgb * 3 + 2] / 255);
+				Color[] cols = new Color[scl * scl];
+
+				for (int i = 0; i < cols.Length; i++)
+				{
+					cols[i] = col;
+				}
+				playpal.SetPixels(x * scl, y * scl, scl, scl, cols);
+			}
+		}
+		playpal.Apply();
 
 		inited = true;
 	}
@@ -38,40 +60,16 @@ public class MapBuilder : MonoBehaviour
 		}
 	}
 
+	void OnGUI()
+	{
+		if (!inited) return;
+
+		GUILayout.Box(playpal);
+	}
+
 	// Update is called once per frame
 	void Update()
 	{
 
 	}
-}
-
-[System.Serializable]
-public class MapData
-{
-	public string name;
-	public Thing[] things;
-	public Linedef[] linedefs;
-	public Sidedef[] sidedefs;
-	public Vertex[] vertexes;
-	public Seg[] segs;
-	public SubSector[] subsectors;
-	public Node[] nodes;
-	public Sector[] sectors;
-
-	[System.Serializable]
-	public struct Thing { public int x, y, angle, type, options; }
-	[System.Serializable]
-	public struct Linedef { public int start, end, flags, types, tag, right, left; }
-	[System.Serializable]
-	public struct Sidedef { public int xofs, yofs, sector; public string texUpper, texLower, texMiddle; }
-	[System.Serializable]
-	public struct Vertex { public int x, y; }
-	[System.Serializable]
-	public struct Seg { public int start, end, angle, linedef, direction, offset; }
-	[System.Serializable]
-	public struct SubSector { public int num, start; }
-	[System.Serializable]
-	public struct Node { public int x, y, dx, dy, yul, yll, xul, xll, yur, ylr, xur, xlr, lft, rgt; }
-	[System.Serializable]
-	public struct Sector { public int floor, ceiling, light, special, tag; public string flatFloor, flatCeiling; }
 }

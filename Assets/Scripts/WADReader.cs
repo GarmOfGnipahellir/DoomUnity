@@ -4,8 +4,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
-[System.Serializable]
 public class WADReader
 {
 	private static WADReader _instance;
@@ -25,7 +25,9 @@ public class WADReader
 	public static string iwadPath = "/Resources/DOOM.WAD";
 
 	public static LumpPointer[] lumpPointers;
+	public static int[,] playpal;
 	public static Dictionary<string, int> mapLumps;
+	public static Dictionary<string, int> textureLumps;
 
 	public static void loadWAD()
 	{
@@ -40,7 +42,11 @@ public class WADReader
 
 			lumpPointers = new LumpPointer[numLumps];
 			mapLumps = new Dictionary<string, int>();
+			textureLumps = new Dictionary<string, int>();
 
+			int playpalLump = -1;
+
+			// populate lump pointer array
 			br.BaseStream.Position = dirPos;
 			for (int i = 0; i < lumpPointers.Length; i++)
 			{
@@ -53,11 +59,27 @@ public class WADReader
 
 				bool isMap = IsMap(lump.name);
 
-				// Debug.Log(string.Format("LUMP {0}, POS {1}, SIZE {2}, NAME {3}, MAP {4}", i, lump.pos, lump.size, lump.name, isMap.ToString().ToUpper()));
+				//Debug.Log(string.Format("LUMP {0}, POS {1}, SIZE {2}, NAME {3}, MAP {4}", i, lump.pos, lump.size, lump.name, isMap.ToString().ToUpper()));
 
-				if (isMap)
+				if (IsPlaypal(lump.name)) playpalLump = i;
+				if (isMap) mapLumps.Add(lump.name, i);
+				if (IsTexture(lump.name)) textureLumps.Add(lump.name, i);
+			}
+
+			// load playpal
+			br.BaseStream.Position = lumpPointers[playpalLump].pos;
+			int numPals = lumpPointers[playpalLump].size / 768;
+			playpal = new int[numPals, 768];
+			for (int pal = 0; pal < playpal.GetLength(0); pal++)
+			{
+				for (int rgb = 0; rgb < playpal.GetLength(1) / 3; rgb++)
 				{
-					mapLumps.Add(lump.name, i);
+					playpal[pal, rgb * 3 + 0] = br.ReadByte();
+					playpal[pal, rgb * 3 + 1] = br.ReadByte();
+					playpal[pal, rgb * 3 + 2] = br.ReadByte();
+
+					// string hex = BitConverter.ToString(new byte[] { (byte)playpal[pal, rgb * 3 + 0], (byte)playpal[pal, rgb * 3 + 1], (byte)playpal[pal, rgb * 3 + 2] }).Replace("-", string.Empty);
+					// Debug.Log(string.Format("Adding <color=#{3}>COLOR</color> {0} {1} {2} to PLAYPAL", playpal[pal, rgb * 3 + 0], playpal[pal, rgb * 3 + 1], playpal[pal, rgb * 3 + 2], hex));
 				}
 			}
 		}
@@ -183,13 +205,24 @@ public class WADReader
 		}
 	}
 
+	public static MapData.Patch loadPatch(BinaryReader br, string texName)
+	{
+		MapData.Patch patch = new MapData.Patch();
+
+
+
+		return patch;
+	}
+
 	static BinaryReader createBinaryReader(string path) { return new BinaryReader(File.Open(Application.dataPath+path, FileMode.Open)); }
 
 	// cleaning of string required since name is padded with zeroes if less than 8 bytes
 	static string parseASCII(byte[] bytes) { return new string(Encoding.ASCII.GetString(bytes).Where(char.IsLetterOrDigit).ToArray()); }
 
+	public static bool IsPlaypal(string name) { return Regex.IsMatch(name, @"^PLAYPAL"); }
 	public static bool IsMap(string name) { return Regex.IsMatch(name, @"^(E\dM\d|MAP\d\d)"); }
 	public static bool IsMapEntry(string name) { return Regex.IsMatch(name, @"^(THINGS|LINEDEFS|SIDEDEFS|VERTEXES|SEGS|SSECTORS|NODES|SECTORS|REJECT|BLOCKMAP)"); }
+	public static bool IsTexture(string name) { return Regex.IsMatch(name, @"^TEXTURE\d"); }
 
 	public struct LumpPointer
 	{
@@ -207,4 +240,44 @@ public class WADReader
 			name = "NULL";
 		}
 	}
+}
+
+[System.Serializable]
+public class MapData
+{
+	public string name;
+
+	public Thing[] things;
+	public Linedef[] linedefs;
+	public Sidedef[] sidedefs;
+	public Vertex[] vertexes;
+	public Seg[] segs;
+	public SubSector[] subsectors;
+	public Node[] nodes;
+	public Sector[] sectors;
+
+	public Dictionary<string, Flat> flats;
+	public Dictionary<string, Patch> patches;
+
+	[System.Serializable]
+	public struct Thing { public int x, y, angle, type, options; }
+	[System.Serializable]
+	public struct Linedef { public int start, end, flags, types, tag, right, left; }
+	[System.Serializable]
+	public struct Sidedef { public int xofs, yofs, sector; public string texUpper, texLower, texMiddle; }
+	[System.Serializable]
+	public struct Vertex { public int x, y; }
+	[System.Serializable]
+	public struct Seg { public int start, end, angle, linedef, direction, offset; }
+	[System.Serializable]
+	public struct SubSector { public int num, start; }
+	[System.Serializable]
+	public struct Node { public int x, y, dx, dy, yul, yll, xul, xll, yur, ylr, xur, xlr, lft, rgt; }
+	[System.Serializable]
+	public struct Sector { public int floor, ceiling, light, special, tag; public string flatFloor, flatCeiling; }
+
+	[System.Serializable]
+	public struct Flat {  }
+	[System.Serializable]
+	public struct Patch {  }
 }
