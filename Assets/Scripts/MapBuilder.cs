@@ -31,12 +31,12 @@ public class MapBuilder : MonoBehaviour
 
 		//MapData.Patch mdp = WADReader.LoadPatch(WADReader.CreateBinaryReader(WADReader.iwadPath), "DOOR3");
 
-		inited = true;
+		inited = false;
 	}
 
 	void OnDrawGizmos()
 	{
-		if (inited) return;
+		if (!inited) return;
 
 		Gizmos.color = Color.red;
 		foreach (Thing thing in map.things)
@@ -63,11 +63,5 @@ public class MapBuilder : MonoBehaviour
 
 		GUILayout.BeginArea(new Rect(5, 5, playpalTex.width, playpalTex.height), playpalTex);							GUILayout.EndArea();
 		GUILayout.BeginArea(new Rect(10 + playpalTex.width, 5, colormapTex.width, colormapTex.height), colormapTex);	GUILayout.EndArea();
-	}
-
-	// Update is called once per frame
-	void Update()
-	{
-
 	}
 }

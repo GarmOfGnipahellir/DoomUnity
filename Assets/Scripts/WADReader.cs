@@ -24,41 +24,46 @@ namespace Doom.IO
 
 		static readonly string[] mapEntryNames = { "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP" };
 
-		static BinaryReader bri;
+		static BinaryReader _bri;
+		static BinaryReader bri
+		{
+			get
+			{
+				if (_bri == null)
+				{
+					_bri = CreateBinaryReader(iwadPath);
+				}
+				return _bri;
+			}
+		}
 
 		public static string wadMode = "DOOM";
 		public static string iwadPath = "/Resources/doom.wad";
-
-		public WADReader()
-		{
-			bri = CreateBinaryReader(iwadPath);
-		}
 
 		public static bool TryGetLump(string name, out Entry entry, int fromIndex = 0)
 		{
 			bool result = false;
 			entry = new Entry(iwadPath);
 
-			using (BinaryReader br = CreateBinaryReader(iwadPath))
+			bri.BaseStream.Position = 0;
+
+			string type = ParseASCII(bri.ReadBytes(4));
+			int numLumps = bri.ReadInt32();
+			int dirPos = bri.ReadInt32();
+
+			bri.BaseStream.Position = dirPos + fromIndex * 16;
+
+			for (int i = fromIndex; i < numLumps; i++)
 			{
-				string type = ParseASCII(br.ReadBytes(4));
-				int numLumps = br.ReadInt32();
-				int dirPos = br.ReadInt32();
+				entry.index = i;
+				entry.pos = bri.ReadInt32();
+				entry.size = bri.ReadInt32();
+				entry.name = ParseASCII(bri.ReadBytes(8));
 
-				br.BaseStream.Position = dirPos + fromIndex * 16;
-
-				for (int i = fromIndex; i < numLumps; i++)
+				if (entry.name == name)
 				{
-					entry.index = i;
-					entry.pos = br.ReadInt32();
-					entry.size = br.ReadInt32();
-					entry.name = ParseASCII(br.ReadBytes(8));
-
-					if (entry.name == name)
-					{
-						result = true;
-						break;
-					}
+					result = true;
+					break;
 				}
 			}
 
@@ -93,20 +98,17 @@ namespace Doom.IO
 		{
 			Thing[] result = new Thing[entry.size / 10];
 
-			using (BinaryReader br = CreateBinaryReader(iwadPath))
-			{
-				br.BaseStream.Position = entry.pos;
+			bri.BaseStream.Position = entry.pos;
 
-				for (int i = 0; i < result.Length; i++)
-				{
-					Thing thing = new Thing();
-					thing.x = br.ReadInt16();
-					thing.y = br.ReadInt16();
-					thing.angle = br.ReadInt16();
-					thing.type = br.ReadInt16();
-					thing.options = br.ReadInt16();
-					result[i] = thing;
-				}
+			for (int i = 0; i < result.Length; i++)
+			{
+				Thing thing = new Thing();
+				thing.x = bri.ReadInt16();
+				thing.y = bri.ReadInt16();
+				thing.angle = bri.ReadInt16();
+				thing.type = bri.ReadInt16();
+				thing.options = bri.ReadInt16();
+				result[i] = thing;
 			}
 
 			return result;
@@ -116,14 +118,11 @@ namespace Doom.IO
 		{
 			Playpal[] result = new Playpal[entry.size / 768];
 
-			using (BinaryReader br = CreateBinaryReader(iwadPath))
-			{
-				br.BaseStream.Position = entry.pos;
+			bri.BaseStream.Position = entry.pos;
 
-				for (int i = 0; i < result.Length; i++)
-				{
-					result[i] = new Playpal(br.ReadBytes(768));
-				}
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = new Playpal(bri.ReadBytes(768));
 			}
 
 			return result;
@@ -133,14 +132,11 @@ namespace Doom.IO
 		{
 			Colormap[] result = new Colormap[entry.size / 256];
 
-			using (BinaryReader br = CreateBinaryReader(iwadPath))
-			{
-				br.BaseStream.Position = entry.pos;
+			bri.BaseStream.Position = entry.pos;
 
-				for (int i = 0; i < result.Length; i++)
-				{
-					result[i] = new Colormap(br.ReadBytes(256));
-				}
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = new Colormap(bri.ReadBytes(256));
 			}
 
 			return result;
