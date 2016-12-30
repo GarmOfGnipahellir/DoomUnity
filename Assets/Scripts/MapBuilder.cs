@@ -1,61 +1,58 @@
 ﻿using UnityEngine;
+using Doom.IO;
 
 public class MapBuilder : MonoBehaviour
 {
 	bool inited = false;
 	public float scale = 1.0f / 64;
-	public MapData mapData;
-	public Texture2D playpal;
+	public Map map;
+	public Playpal[] playpal;
+	public Colormap[] colormap;
+	public Texture2D playpalTex;
+	public Texture2D colormapTex;
+	public Texture2D patch;
 
 	// Use this for initialization
 	void Start()
 	{
-		WADReader.loadWAD();
-		mapData = WADReader.loadMap("E1M1");
+		map = WADReader.LoadMap("E1M1");
 
-		int scl = 8;
-		playpal = new Texture2D(16 * scl * 7, 16 * scl * 2, TextureFormat.RGBA32, false, true);
-		for (int pal = 0; pal < 14; pal++)
+		Entry playpalEntry;
+		if (WADReader.TryGetLump("PLAYPAL", out playpalEntry))
 		{
-			for (int rgb = 0; rgb < 256; rgb++)
-			{
-				int x = rgb % 16 + (pal % 7) * 16;
-				int y = Mathf.FloorToInt(rgb / 16) + Mathf.FloorToInt(pal / 7) * 16;
-
-				Color col = new Color((float)WADReader.playpal[pal, rgb * 3 + 0] / 255, (float)WADReader.playpal[pal, rgb * 3 + 1] / 255, (float)WADReader.playpal[pal, rgb * 3 + 2] / 255);
-				Color[] cols = new Color[scl * scl];
-
-				for (int i = 0; i < cols.Length; i++)
-				{
-					cols[i] = col;
-				}
-				playpal.SetPixels(x * scl, y * scl, scl, scl, cols);
-			}
+			playpal = WADReader.ReadToPlaypal(playpalEntry);
 		}
-		playpal.Apply();
+
+		Entry colormapEntry;
+		if (WADReader.TryGetLump("COLORMAP", out colormapEntry))
+		{
+			colormap = WADReader.ReadToColormap(colormapEntry);
+		}
+
+		//MapData.Patch mdp = WADReader.LoadPatch(WADReader.CreateBinaryReader(WADReader.iwadPath), "DOOR3");
 
 		inited = true;
 	}
 
 	void OnDrawGizmos()
 	{
-		if (!inited) return;
+		if (inited) return;
 
 		Gizmos.color = Color.red;
-		foreach (MapData.Thing thing in mapData.things)
+		foreach (Thing thing in map.things)
 		{
 			Gizmos.DrawWireCube(new Vector3(thing.x, 0, thing.y) * scale, Vector3.one * 10 * scale);
 		}
 		Gizmos.color = Color.blue;
-		foreach (MapData.Vertex vertex in mapData.vertexes)
+		foreach (Vertex vertex in map.vertexes)
 		{
 			Gizmos.DrawWireSphere(new Vector3(vertex.x, 0, vertex.y) * scale, 0.5f * 10 * scale);
 		}
 		Gizmos.color = Color.white;
-		foreach (MapData.Linedef linedef in mapData.linedefs)
+		foreach (Linedef linedef in map.linedefs)
 		{
-			MapData.Vertex startVertex = mapData.vertexes[linedef.start];
-			MapData.Vertex endVertex = mapData.vertexes[linedef.end];
+			Vertex startVertex = map.vertexes[linedef.start];
+			Vertex endVertex = map.vertexes[linedef.end];
 			Gizmos.DrawLine(new Vector3(startVertex.x, 0, startVertex.y) * scale, new Vector3(endVertex.x, 0, endVertex.y) * scale);
 		}
 	}
@@ -64,7 +61,8 @@ public class MapBuilder : MonoBehaviour
 	{
 		if (!inited) return;
 
-		GUILayout.Box(playpal);
+		GUILayout.BeginArea(new Rect(5, 5, playpalTex.width, playpalTex.height), playpalTex);							GUILayout.EndArea();
+		GUILayout.BeginArea(new Rect(10 + playpalTex.width, 5, colormapTex.width, colormapTex.height), colormapTex);	GUILayout.EndArea();
 	}
 
 	// Update is called once per frame
