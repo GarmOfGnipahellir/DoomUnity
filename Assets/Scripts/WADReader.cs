@@ -114,32 +114,46 @@ namespace Doom.IO
 			return result;
 		}
 
-		public static Playpal[] ReadToPlaypal(Entry entry)
+		public static byte[,] GetPlaypal()
 		{
-			Playpal[] result = new Playpal[entry.size / 768];
-
-			bri.BaseStream.Position = entry.pos;
-
-			for (int i = 0; i < result.Length; i++)
+			Entry entry;
+			if (TryGetLump("PLAYPAL", out entry))
 			{
-				result[i] = new Playpal(bri.ReadBytes(768));
-			}
+				byte[,] result = new byte[entry.size / 768, 768];
 
-			return result;
+				bri.BaseStream.Position = entry.pos;
+
+				for (int i = 0; i < result.GetLength(0); i++)
+				{
+					for (int j = 0; j < result.GetLength(1); j++)
+					{
+						result[i, j] = bri.ReadByte();
+					}
+				}
+				return result;
+			}
+			return null;
 		}
 
-		public static Colormap[] ReadToColormap(Entry entry)
+		public static byte[,] GetColormap()
 		{
-			Colormap[] result = new Colormap[entry.size / 256];
-
-			bri.BaseStream.Position = entry.pos;
-
-			for (int i = 0; i < result.Length; i++)
+			Entry entry;
+			if (TryGetLump("COLORMAP", out entry))
 			{
-				result[i] = new Colormap(bri.ReadBytes(256));
-			}
+				byte[,] result = new byte[entry.size / 256, 256];
 
-			return result;
+				bri.BaseStream.Position = entry.pos;
+
+				for (int i = 0; i < result.GetLength(0); i++)
+				{
+					for (int j = 0; j < result.GetLength(1); j++)
+					{
+						result[i, j] = bri.ReadByte();
+					}
+				}
+				return result;
+			}
+			return null;
 		}
 
 		public static BinaryReader CreateBinaryReader(string path) { return new BinaryReader(File.Open(Application.dataPath + path, FileMode.Open)); }
