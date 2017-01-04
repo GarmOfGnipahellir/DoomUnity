@@ -26,7 +26,8 @@ public class MapBuilder : MonoBehaviour
 			for (int i = 0; i < ssector.num; i++)
 			{
 				Seg seg = map.segs[ssector.start + i];
-				Vertex vert = map.vertexes[seg.start];
+				Vertex vertS = map.vertexes[seg.start];
+				Vertex vertE = map.vertexes[seg.end];
 				Linedef line = map.linedefs[seg.linedef];
 				Sidedef sideR = map.sidedefs[line.right];
 				Sector sectorR = map.sectors[sideR.sector];
@@ -34,20 +35,11 @@ public class MapBuilder : MonoBehaviour
 				{
 					Sidedef sideL = map.sidedefs[line.left];
 					Sector sectorL = map.sectors[sideL.sector];
-					if (sectorR.ceiling != sectorL.ceiling)
-					{
-						vertices.Add(new Vector3(vert.x, sectorR.ceiling, vert.y) * scale);
-					}
-					if (sectorR.floor != sectorL.floor)
-					{
-						vertices.Add(new Vector3(vert.x, sectorR.floor, vert.y) * scale);
-					}
 				}
-				else
-				{
-					vertices.Add(new Vector3(vert.x, sectorR.floor, vert.y) * scale);
-				}
-				floorVerts.Add(new Vector3(vert.x, 0, vert.y) * scale);
+				Vector3 vStart = new Vector3(vertS.x, 0, vertS.y) * scale;
+				Vector3 vEnd = new Vector3(vertE.x, 0, vertS.y) * scale;
+				if (!floorVerts.Contains(vStart)) floorVerts.Add(vStart);
+				if (!floorVerts.Contains(vEnd)) floorVerts.Add(vEnd);
 			}
 
 			List<int> floorTris = new List<int>();
