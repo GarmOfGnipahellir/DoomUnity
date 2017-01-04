@@ -6,30 +6,8 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class MapBuilder : MonoBehaviour
 {
-	MeshRenderer _meshRenderer;
-	MeshRenderer meshRenderer
-	{
-		get
-		{
-			if (_meshRenderer = null)
-			{
-				_meshRenderer = GetComponent<MeshRenderer>();
-			}
-			return _meshRenderer;
-		}
-	}
-	MeshFilter _meshFilter;
-	MeshFilter meshFilter
-	{
-		get
-		{
-			if (_meshFilter = null)
-			{
-				_meshFilter = GetComponent<MeshFilter>();
-			}
-			return _meshFilter;
-		}
-	}
+	public MeshRenderer meshRenderer;
+	public MeshFilter meshFilter;
 	bool inited = false;
 	public float scale = 1.0f / 64;
 	public Map map;
@@ -40,48 +18,64 @@ public class MapBuilder : MonoBehaviour
 		map = WADReader.LoadMap("E1M1");
 
 		vertices = new List<Vector3>();
-		SubSector ssector = map.subsectors[0];
-		for (int i = 0; i < ssector.num; i++)
+		List<CombineInstance> floorCIs = new List<CombineInstance>();
+		foreach (SubSector ssector in map.subsectors)
 		{
-			Seg seg = map.segs[ssector.start + i];
-			Vertex vert = map.vertexes[seg.start];
-			Linedef line = map.linedefs[seg.linedef];
-			Sidedef sideR = map.sidedefs[line.right];
-			Sector sectorR = map.sectors[sideR.sector];
-			if (line.left >= 0)
+			List<Vector3> floorVerts = new List<Vector3>();
+			// SubSector ssector = map.subsectors[0];
+			for (int i = 0; i < ssector.num; i++)
 			{
-				Sidedef sideL = map.sidedefs[line.left];
-				Sector sectorL = map.sectors[sideL.sector];
-				if (sectorR.ceiling != sectorL.ceiling)
+				Seg seg = map.segs[ssector.start + i];
+				Vertex vert = map.vertexes[seg.start];
+				Linedef line = map.linedefs[seg.linedef];
+				Sidedef sideR = map.sidedefs[line.right];
+				Sector sectorR = map.sectors[sideR.sector];
+				if (line.left >= 0)
 				{
-					vertices.Add(new Vector3(vert.x, sectorR.ceiling, vert.y) * scale);
+					Sidedef sideL = map.sidedefs[line.left];
+					Sector sectorL = map.sectors[sideL.sector];
+					if (sectorR.ceiling != sectorL.ceiling)
+					{
+						vertices.Add(new Vector3(vert.x, sectorR.ceiling, vert.y) * scale);
+					}
+					if (sectorR.floor != sectorL.floor)
+					{
+						vertices.Add(new Vector3(vert.x, sectorR.floor, vert.y) * scale);
+					}
 				}
-				if (sectorR.floor != sectorL.floor)
+				else
 				{
 					vertices.Add(new Vector3(vert.x, sectorR.floor, vert.y) * scale);
 				}
+				floorVerts.Add(new Vector3(vert.x, 0, vert.y) * scale);
 			}
-			else
+
+			List<int> floorTris = new List<int>();
+			int p0 = 0;
+			int pHelper = 1;
+			for (int i = 2; i < floorVerts.Count; i++)
 			{
- 				vertices.Add(new Vector3(vert.x, sectorR.floor, vert.y) * scale);
+				int pTemp = i;
+				floorTris.AddRange(new int[] { p0, pHelper, pTemp });
+				pHelper = pTemp;
 			}
+
+			CombineInstance ci = new CombineInstance();
+			Mesh mesh = new Mesh();
+			mesh.vertices = floorVerts.ToArray();
+			mesh.triangles = floorTris.ToArray();
+			mesh.RecalculateNormals();
+			ci.mesh = mesh;
+			ci.transform = transform.localToWorldMatrix;
+			floorCIs.Add(ci);
 		}
 
-		int[] triangles = new int[vertices.Count * 2 - 1];
-		for (int i = 0; i < triangles.Length / 3; i++)
-		{
-			triangles[i + 0] = 0;
-			triangles[i + 1] = (i + 1) % vertices.Count;
-			triangles[i + 2] = (i + 2) % vertices.Count;
-		}
 
-		Mesh mesh = new Mesh();
+		Mesh combinedFloor = new Mesh();
 
-		mesh.vertices = vertices.ToArray();
-		mesh.triangles = triangles;
-		mesh.RecalculateNormals();
+		combinedFloor.CombineMeshes(floorCIs.ToArray());
 
-		GetComponent<MeshFilter>().mesh = mesh;
+		meshFilter.sharedMesh = combinedFloor;
 
 		inited = true;
 	}
@@ -96,7 +90,7 @@ public class MapBuilder : MonoBehaviour
 			Gizmos.DrawWireCube(new Vector3(thing.x, 0, thing.y) * scale, Vector3.one * 10 * scale);
 		}
 		Gizmos.color = Color.blue;
-		foreach (Vector3 vertex in vertices)
+		foreach (Vector3 vertex in meshFilter.sharedMesh.vertices)
 		{
 			Gizmos.DrawWireSphere(vertex, 5 * scale);
 		}/*
