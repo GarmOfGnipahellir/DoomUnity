@@ -22,7 +22,7 @@ public class MapBuilder : MonoBehaviour
 		foreach (SubSector ssector in map.subsectors)
 		{
 			List<Vector3> floorVerts = new List<Vector3>();
-			// SubSector ssector = map.subsectors[0];
+			//SubSector ssector = map.subsectors[0];
 			for (int i = 0; i < ssector.num; i++)
 			{
 				Seg seg = map.segs[ssector.start + i];
@@ -37,9 +37,9 @@ public class MapBuilder : MonoBehaviour
 					Sector sectorL = map.sectors[sideL.sector];
 				}
 				Vector3 vStart = new Vector3(vertS.x, 0, vertS.y) * scale;
-				Vector3 vEnd = new Vector3(vertE.x, 0, vertS.y) * scale;
-				if (!floorVerts.Contains(vStart)) floorVerts.Add(vStart);
-				if (!floorVerts.Contains(vEnd)) floorVerts.Add(vEnd);
+				Vector3 vEnd = new Vector3(vertE.x, 0, vertE.y) * scale;
+				/*if (!floorVerts.Contains(vStart))*/ floorVerts.Add(vStart);
+				/*if (!floorVerts.Contains(vEnd))*/ floorVerts.Add(vEnd);
 			}
 
 			List<int> floorTris = new List<int>();
@@ -62,7 +62,6 @@ public class MapBuilder : MonoBehaviour
 			floorCIs.Add(ci);
 		}
 
-
 		Mesh combinedFloor = new Mesh();
 
 		combinedFloor.CombineMeshes(floorCIs.ToArray());
@@ -76,16 +75,6 @@ public class MapBuilder : MonoBehaviour
 	{
 		if (!inited) return;
 
-		Gizmos.color = Color.red;
-		foreach (Thing thing in map.things)
-		{
-			Gizmos.DrawWireCube(new Vector3(thing.x, 0, thing.y) * scale, Vector3.one * 10 * scale);
-		}
-		Gizmos.color = Color.blue;
-		foreach (Vector3 vertex in meshFilter.sharedMesh.vertices)
-		{
-			Gizmos.DrawWireSphere(vertex, 5 * scale);
-		}/*
 		Gizmos.color = Color.white;
 		foreach (Linedef linedef in map.linedefs)
 		{
@@ -94,16 +83,8 @@ public class MapBuilder : MonoBehaviour
 			Sidedef sidedefRight = map.sidedefs[linedef.right];
 			Sector sectorRight = map.sectors[sidedefRight.sector];
 			Gizmos.DrawLine(
-				new Vector3(startVertex.x, sectorRight.floor, startVertex.y) * scale, 
-				new Vector3(endVertex.x, sectorRight.floor, endVertex.y) * scale);
-			if (linedef.left >= 0)
-			{
-				Sidedef sidedefLeft = map.sidedefs[linedef.left];
-				Sector sectorLeft = map.sectors[sidedefLeft.sector];
-				Gizmos.DrawLine(
-					new Vector3(startVertex.x, sectorLeft.floor, startVertex.y) * scale, 
-					new Vector3(endVertex.x, sectorLeft.floor, endVertex.y) * scale);
-			}
-		}*/
+				new Vector3(startVertex.x, 0, startVertex.y) * scale, 
+				new Vector3(endVertex.x, 0, endVertex.y) * scale);
+		}
 	}
 }
